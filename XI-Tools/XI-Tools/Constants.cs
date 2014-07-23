@@ -62,5 +62,17 @@ namespace ZeroLimits.XITools
         /// help prevent spamming pulling moves. 
         /// </summary>
         public const int PULL_SPELL_RECAST_DURATION = 0;
+
+        /// <summary>
+        /// One second for spells to fire when casted through 
+        /// WindowerTools.SendString(command).
+        /// </summary>
+        public const int SPELL_CAST_LATENCY = 1000;
+
+        /// <summary>
+        /// Each spell takes 5 seconds to cast after a previous spell 
+        /// has been casted.
+        /// </summary>
+        public const int GLOBAL_SPELL_COOLDOWN = 5000;
     }
 }

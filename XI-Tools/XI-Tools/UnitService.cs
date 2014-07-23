@@ -132,11 +132,14 @@ namespace ZeroLimits.XITools
 
         public bool IsValid(Unit unit)
         {
+            // If the mob is false... 
+            if (unit == null) return false;
+
             // Gain performance by only checking mobs that are active
             if (!unit.IsActive) return false; 
 
             // Mob not in reach height wise. 
-            if (HeightThreshold > unit.YDifference) return false;
+            if (unit.YDifference > HeightThreshold) return false;
 
             // mob is not blank.
             if (unit.NPCBit == 0) return false;
@@ -145,7 +148,7 @@ namespace ZeroLimits.XITools
             if(unit.IsDead) return false;
 
             // Mob not out target.
-            if (!TargetMobs.Contains(unit.Name)) return false;
+            if (!TargetMobs.Contains(unit.Name) && TargetMobs.Count > 0) return false;
 
             // If the mob is ignored and there are no targets
             if(IgnoredMobs.Contains(unit.Name)) return false;
@@ -157,6 +160,7 @@ namespace ZeroLimits.XITools
         {
             return UnitArray.Where(filter).OrderBy(x => x.Distance)
                 .FirstOrDefault();
+
         }
     }
 }

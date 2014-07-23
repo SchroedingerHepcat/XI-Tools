@@ -22,18 +22,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace ZeroLimits.XITools
 {
     /// <summary>
-    /// A class for using abilties.
+    /// Hold methods that are used for casting spells / abilities. 
+    /// Spell / ability validation, recast time checks and casting methods implemented here.
     /// </summary>
-
     public class AbilityExecutor
     {
         private FFACE _fface;
 
-        private float PriorCastCountDown;
+        private short _priorPercentEx;
 
         public AbilityExecutor(FFACE fface)
         {
@@ -41,27 +42,154 @@ namespace ZeroLimits.XITools
         }
 
         /// <summary>
-        /// Performs a list of actions. 
-        /// Could be spells or job abilities. 
-        /// Does not validate actions.
+        /// Tries to cast spells but does not ensure the succeed. 
         /// </summary>
-        /// <param name="actions"></param>
-        /// <param name="unit"></param>
-        public void ExecuteActions(List<Ability> actions)
+        /// <param name="target">
+        /// The Target use the spells on. 
+        /// </param>
+        /// <param name="actions">
+        /// The list of spells to use. 
+        /// </param>
+        /// <param name="spellCastLatency">
+        /// Time to wait for spells to start casting. The more laggy the server
+        /// the higher this value should be. 
+        /// </param>
+        /// <param name="globalSpellCoolDown">
+        /// The time to wait after each spell is casted before another spell may 
+        /// be casted.
+        /// </param>
+        public void ExecuteActions(Unit target, List<Ability> actions, int spellCastLatency, int globalSpellCoolDown)
         {
-            foreach (var act in actions)
+            // Try to cast all spells / abilities. 
+            foreach (var action in actions)
             {
-                UseAbility(act);
+                // Target the enemy. 
+                XITools.GetInstance(_fface).CombatService.TargetUnit(target);
+
+                // Use the spell / ability
+                UseAbility(action, spellCastLatency, globalSpellCoolDown);
             }
         }
 
         /// <summary>
-        /// Attempts to use the passed in ability
+        /// Ensures the casting of all spells. 
         /// </summary>
-        /// <param name="ability"></param>
-        public bool UseAbility(Ability ability)
+        /// <param name="target">
+        /// The target we are using the moves on. 
+        /// </param>
+        /// <param name="actions">
+        /// List of moves to execute
+        /// </param>
+        /// <param name="spellCastLatency">
+        /// Time to wait for spells to start casting. The more laggy the server
+        /// the higher this value should be. 
+        /// </param>
+        /// <param name="globalSpellCoolDown">
+        /// The time to wait after each spell is casted before another spell may 
+        /// be casted.
+        /// </param>
+        /// <param name="spellRecastDelay">
+        /// How long to wait before casting a spell that has failed to cast. 
+        /// </param>
+        public void EnsureSpellsCast(Unit target, List<Ability> actions,
+            int spellCastLatency, int globalSpellCoolDown, int spellRecastDelay)
+        {
+            // Contains the moves for casting. DateTime field prevents 
+            Dictionary<Ability, DateTime> castable = new Dictionary<Ability, DateTime>();
+
+            // contains the list of moves to update in castables.
+            Dictionary<Ability, DateTime> updates = new Dictionary<Ability, DateTime>();
+
+            // contains the list of moves that have been completed and will be deleted
+            List<Ability> discards = new List<Ability>();
+
+            // Add all starting moves to the castable dictionary. 
+            foreach (var action in actions)
+            {
+                if (!castable.ContainsKey(action))
+                {
+                    castable.Add(action, DateTime.Now);
+                }
+            }
+
+            // Loop until all abilities have been casted. 
+            while (castable.Count > 0)
+            {
+                // Loop through all remaining abilities. 
+                foreach (var action in castable.Keys)
+                {
+                    // If we don't meet the mp/tp/recast requirements don't process the action. 
+                    // If we did we'd be adding unneccessary wait time.
+                    if (!XITools.GetInstance(_fface).AbilityExecutor.IsActionValid(action)) continue;
+
+                    // Continue looping if we can't cast the spell. 
+                    if (DateTime.Now <= castable[action]) continue;
+
+                    // Target the enemy. 
+                    XITools.GetInstance(_fface).CombatService.TargetUnit(target);
+
+                    // Cast the spell. 1 second wait for spells to start casting and 
+                    //  5 seconds wait after cast. 
+                    bool success = XITools.GetInstance(_fface).
+                        AbilityExecutor.UseAbility(action, spellCastLatency, globalSpellCoolDown);
+
+                    // On failure add action to updates for recasting.  
+                    if (!success)
+                    {
+                        // Wait for three seconds for next attempt.
+                        var waitPeriod = DateTime.Now.AddSeconds(spellRecastDelay);
+
+                        // If the action already queued for update just reassign its time used. 
+                        if (updates.ContainsKey(action)) updates[action] = waitPeriod;
+
+                        // Add action to updates list for reuse. 
+                        else updates.Add(action, waitPeriod);
+                    }
+
+                    // on success add to discards for deletion from castables.
+                    else discards.Add(action);
+                }
+
+                // Remove the key and re-add it to update the recast times. 
+                foreach (var update in updates)
+                {
+                    // Remove the key
+                    castable.Remove(update.Key);
+
+                    // Re-add the key
+                    castable.Add(update.Key, update.Value);
+                }
+
+                // Remove the key so we can't cast that spell again. 
+                foreach (var discard in discards)
+                {
+                    // Remove the key
+                    castable.Remove(discard);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Uses an ability and returns whether it suceeded or not. 
+        /// </summary>
+        /// <param name="ability">
+        /// The move to use. 
+        /// </param>
+        /// <param name="spellCastLatency">
+        /// Time to wait for spells to start casting. The more laggy the server
+        /// the higher this value should be. 
+        /// </param>
+        /// <param name="globalSpellCoolDown">
+        /// The time to wait after each spell is casted before another spell may 
+        /// be casted.
+        /// </param>
+        /// <returns>True on success</returns>
+        public bool UseAbility(Ability ability, int spellCastLatency, int globlaSpellCoolDown)
         {
             bool success = false;
+
+            // If the ability can't be used
+            if (!IsActionValid(ability)) return false;
 
             // Stop the bot from running so that we can cast. 
             _fface.Navigator.Reset();
@@ -71,15 +199,36 @@ namespace ZeroLimits.XITools
 
             if (ability.IsSpell)
             {
-                while (_fface.Player.CastCountDown != 0 ||
-                    _fface.Player.CastCountDown != PriorCastCountDown)
+                Thread.Sleep(spellCastLatency);
+
+                // While we haven't been interrupted or we haven't completed casting. 
+                while (true)
                 {
-                    PriorCastCountDown = _fface.Player.CastCountDown;
-                    System.Threading.Thread.Sleep(50);
+                    // We've completed the cast.
+                    if (_fface.Player.CastPercentEx == 100)
+                    {
+                        success = true;
+                        break;
+                    }
+
+                    // We've been interrupted. 
+                    if (_fface.Player.CastPercentEx == _priorPercentEx)
+                    {
+                        success = false;
+                        break;
+                    }
+
+                    // Set prior cast to castcountdown.
+                    _priorPercentEx = _fface.Player.CastPercentEx;
+
+                    // Needed for correct testing of CastPercentEx == Prior
+                    Thread.Sleep(50);
                 }
+
+                Thread.Sleep(globlaSpellCoolDown);
             }
 
-            if (_fface.Player.CastCountDown == 0 && _fface.Player.CastCountDown != PriorCastCountDown) { success = true; }
+            _priorPercentEx = -1;
 
             return success;
         }

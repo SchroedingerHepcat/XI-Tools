@@ -21,6 +21,7 @@ You should have received a copy of the GNU General Public License
 using System.Linq;
 using FFACETools;
 using System;
+using System.Threading;
 
 namespace ZeroLimits.XITools
 {
@@ -73,77 +74,7 @@ namespace ZeroLimits.XITools
             if (_fface.Target.ID != unit.ID) return false;
 
             return true;
-        }
-
-        /// <summary>
-        /// Performs all starting actions
-        /// </summary>
-        /// <param name="unit"></param>
-        public void CastSpells(List<Ability> actions, int duration)
-        {
-            // Contains the moves for casting. DateTime field prevents 
-            Dictionary<Ability, DateTime> castable = new Dictionary<Ability, DateTime>();
-
-            // contains the list of moves to update in castables.
-            Dictionary<Ability, DateTime> updates = new Dictionary<Ability, DateTime>();
-
-            // contains the list of moves that have been completed and will be deleted
-            List<Ability> discards = new List<Ability>();
-
-            // Add all starting moves to the castable dictionary. 
-            foreach (var action in actions) castable.Add(action, DateTime.Now);
-
-            // Loop until all abilities have been casted. 
-            while (castable.Count > 0)
-            {
-                // Loop through all remaining abilities. 
-                foreach (var action in castable.Keys)
-                {
-                    // If we don't meet the mp/tp/recast requirements don't process the action. 
-                    // If we did we'd be adding unneccessary wait time.
-                    if (!XITools.GetInstance(_fface).AbilityExecutor.IsActionValid(action)) continue;
-
-                    // Continue looping if we can't cast the spell. 
-                    if (DateTime.Now <= castable[action]) continue;
-
-                    // Cast the spell. 
-                    bool success = XITools.GetInstance(_fface).AbilityExecutor.UseAbility(action);
-
-                    // On failure add action to updates for recasting.  
-                    if (!success)
-                    {
-                        // Wait for three seconds for next attempt.
-                        var waitPeriod = DateTime.Now.AddSeconds(duration);
-
-                        // If the action already queued for update just reassign its time used. 
-                        if (updates.ContainsKey(action)) updates[action] = waitPeriod;
-
-                        // Add action to updates list for reuse. 
-                        else updates.Add(action, waitPeriod);
-                    }
-
-                    // on success add to discards for deletion from castables.
-                    else discards.Add(action);
-                }
-
-                // Remove the key and re-add it to update the recast times. 
-                foreach (var update in updates)
-                {
-                    // Remove the key
-                    castable.Remove(update.Key);
-
-                    // Re-add the key
-                    castable.Add(update.Key, update.Value);
-                }
-
-                // Remove the key so we can't cast that spell again. 
-                foreach (var discard in discards)
-                {
-                    // Remove the key
-                    castable.Remove(discard);
-                }
-            }
-        }
+        }        
 
         /// <summary>
         /// Switches the player to attack mode on the current unit
