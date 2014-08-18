@@ -74,5 +74,10 @@ namespace ZeroLimits.XITools
         /// has been casted.
         /// </summary>
         public const int GLOBAL_SPELL_COOLDOWN = 5000;
+
+        /// <summary>
+        /// Maximum range a spell may be casted. 
+        /// </summary>
+        public const int SPELL_CAST_DISTANCE = 21;
     }
 }

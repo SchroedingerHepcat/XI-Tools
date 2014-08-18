@@ -67,7 +67,13 @@ namespace ZeroLimits.XITools
                 XITools.GetInstance(_fface).CombatService.TargetUnit(target);
 
                 // Use the spell / ability
-                UseAbility(action, spellCastLatency, globalSpellCoolDown);
+                UseAbility(action, spellCastLatency, spellCastLatency);
+
+                // Sleep global cooldown if its not the last action. 
+                if (actions.IndexOf(action) < actions.Count - 1)
+                {
+                    Thread.Sleep(globalSpellCoolDown);
+                }
             }
         }
 
@@ -128,10 +134,15 @@ namespace ZeroLimits.XITools
                     // Target the enemy. 
                     XITools.GetInstance(_fface).CombatService.TargetUnit(target);
 
-                    // Cast the spell. 1 second wait for spells to start casting and 
-                    //  5 seconds wait after cast. 
+                    // Cast the spell. 1 second wait for spells to start casting
                     bool success = XITools.GetInstance(_fface).
-                        AbilityExecutor.UseAbility(action, spellCastLatency, globalSpellCoolDown);
+                        AbilityExecutor.UseAbility(action, spellCastLatency, 0);
+
+                    //  5 seconds wait after cast but skip the wait on the last action. 
+                    if (castable.Count > 1)
+                    {
+                        Thread.Sleep(globalSpellCoolDown);
+                    }
 
                     // On failure add action to updates for recasting.  
                     if (!success)
@@ -249,7 +260,11 @@ namespace ZeroLimits.XITools
             // if ability get ability recast. 
             if (ability.IsAbility) recast = _fface.Timer.GetAbilityRecast((AbilityList)ability.Index);
 
-            return recast == 0;
+            /*
+             * Fixed bug: recast for weaponskills returns -1 not zero. 
+             * Check for <= to zero instead of strictly == zero. 
+             */
+            return recast <= 0;
         }
 
         /// <summary>

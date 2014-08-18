@@ -49,6 +49,7 @@ namespace ZeroLimits.XITools
             this.HeightThreshold = 5;
             this.TargetMobs = new List<string>();
             this.IgnoredMobs = new List<string>();
+            this.MobFilter = DefaultFilter(_fface);
         }
 
         #region Properties
@@ -72,6 +73,12 @@ namespace ZeroLimits.XITools
         ///  List of mobs we'd like to ignore. 
         /// </summary>
         public List<String> IgnoredMobs { get; set; }
+
+        /// <summary>
+        /// Used to filter mobs based on what the consumer thinks is valid. 
+        /// Sets an optional filter to be used. 
+        /// </summary>
+        public Func<Unit, bool> MobFilter { get; set; }
 
         /// <summary>
         /// Does there exist a mob that has aggroed in general.
@@ -121,39 +128,18 @@ namespace ZeroLimits.XITools
         }
 
         public Unit[] UnitArray
-        { 
-            get 
-            { 
-                return _unitArray; 
-            } 
+        {
+            get
+            {
+                return _unitArray;
+            }
         }
 
         #endregion
 
         public bool IsValid(Unit unit)
         {
-            // If the mob is false... 
-            if (unit == null) return false;
-
-            // Gain performance by only checking mobs that are active
-            if (!unit.IsActive) return false; 
-
-            // Mob not in reach height wise. 
-            if (unit.YDifference > HeightThreshold) return false;
-
-            // mob is not blank.
-            if (unit.NPCBit == 0) return false;
-
-            // If the mob is dead.
-            if(unit.IsDead) return false;
-
-            // Mob not out target.
-            if (!TargetMobs.Contains(unit.Name) && TargetMobs.Count > 0) return false;
-
-            // If the mob is ignored and there are no targets
-            if(IgnoredMobs.Contains(unit.Name)) return false;
-
-            return true;
+            return MobFilter(unit);
         }
 
         public Unit GetTarget(Func<Unit, bool> filter)
@@ -161,6 +147,37 @@ namespace ZeroLimits.XITools
             return UnitArray.Where(filter).OrderBy(x => x.Distance)
                 .FirstOrDefault();
 
+        }
+
+        // The default mob filter used in filtering the mobs. 
+        public Func<Unit, bool> DefaultFilter(FFACE fface)
+        {
+            return new Func<Unit, bool>((Unit unit) =>
+            {
+                // If the mob is false... 
+                if (unit == null) return false;
+
+                // Gain performance by only checking mobs that are active
+                if (!unit.IsActive) return false;
+
+                // Mob not in reach height wise. 
+                if (unit.YDifference > HeightThreshold) return false;
+
+                // Allow for mobs with an npc bit of sometimes 4 (colibri) 
+                // and ignore mobs that are invisible npcbit = 0
+                if (unit.NPCBit <= 0 || unit.NPCBit >= 16) return false;
+
+                // If the mob is dead.
+                if (unit.IsDead) return false;
+
+                // Mob not out target.
+                if (!TargetMobs.Contains(unit.Name) && TargetMobs.Count > 0) return false;
+
+                // If the mob is ignored and there are no targets
+                if (IgnoredMobs.Contains(unit.Name)) return false;
+
+                return true;
+            });
         }
     }
 }

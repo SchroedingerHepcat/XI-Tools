@@ -42,7 +42,7 @@ namespace ZeroLimits.XITools
         /// </summary>
         public void EndResting()
         {
-            while (_fface.Player.Status.Equals(Status.Healing)) 
+            if (_fface.Player.Status.Equals(Status.Healing)) 
             { 
                 _fface.Windower.SendString(Constants.RESTING_OFF);
                 System.Threading.Thread.Sleep(50);
@@ -54,7 +54,10 @@ namespace ZeroLimits.XITools
         /// </summary>
         public void StartResting()
         {
-            while (!_fface.Player.Status.Equals(Status.Healing)) 
+            /*Fixed bug that caused program to stop attacking
+             * Changed while to if
+             */
+            if (!_fface.Player.Status.Equals(Status.Healing)) 
             { 
                 _fface.Windower.SendString(Constants.RESTING_ON);
                 System.Threading.Thread.Sleep(50);
