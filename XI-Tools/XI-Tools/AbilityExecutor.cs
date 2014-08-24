@@ -205,8 +205,24 @@ namespace ZeroLimits.XITools
             // Stop the bot from running so that we can cast. 
             _fface.Navigator.Reset();
 
+            // If ranged, wait a short period to ensure that we have stopped running so we don't mess up our aim
+            if (ability.Prefix == "/range")
+            {
+                Thread.Sleep(200);
+            }
+
             // Send it to the game
             _fface.Windower.SendString(ability.ToString());
+
+            // If ranged, wait for ranged attack to connect
+            if (ability.Prefix == "/range")
+            {
+                // This value should be set according to the weapon delay
+                // ffxiclopedia claims this is (http://wiki.ffxiclopedia.org/wiki/Delay):
+                //   Delay = (WeaponDelay / 110)s + 1.7s + 1.8s + 1.1s 
+                //TODO
+                Thread.Sleep(3000);
+            }
 
             if (ability.IsSpell)
             {

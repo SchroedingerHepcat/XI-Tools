@@ -79,5 +79,10 @@ namespace ZeroLimits.XITools
         /// Maximum range a spell may be casted. 
         /// </summary>
         public const int SPELL_CAST_DISTANCE = 21;
+
+        /// <summary>
+        /// Maximum range for ranged attack.
+        /// </summary>
+        public const int RANGED_ATTACK_MAX_DISTANCE = 25;
     }
 }
