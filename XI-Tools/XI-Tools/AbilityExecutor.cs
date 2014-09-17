@@ -221,7 +221,7 @@ namespace ZeroLimits.XITools
                 // ffxiclopedia claims this is (http://wiki.ffxiclopedia.org/wiki/Delay):
                 //   Delay = (WeaponDelay / 110)s + 1.7s + 1.8s + 1.1s 
                 //TODO
-                Thread.Sleep(3000);
+                Thread.Sleep(3500);
             }
 
             if (ability.IsSpell)
