@@ -1,7 +1,7 @@
 
 /*///////////////////////////////////////////////////////////////////
 <EasyFarm, general farming utility for FFXI.>
-Copyright (C) <2013 - 2014>  <Zerolimits>
+Copyright (C) <2013>  <Zerolimits>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ namespace ZeroLimits.XITools
     {
         #region Members
         private static Unit[] _unitArray;
-        private const short MOBARRAY_MAX = 768;
+        private const short UNIT_ARRAY_MAX = Constants.UNIT_ARRAY_MAX;
         private static FFACE _fface;
 
         #endregion
@@ -37,10 +37,10 @@ namespace ZeroLimits.XITools
         {
             _fface = session;
             Unit.Session = _fface;
-            _unitArray = new Unit[MOBARRAY_MAX];
+            _unitArray = new Unit[UNIT_ARRAY_MAX];
 
             // Create units
-            for (int id = 0; id < MOBARRAY_MAX; id++)
+            for (int id = 0; id < UNIT_ARRAY_MAX; id++)
             {
                 _unitArray[id] = Unit.CreateUnit(id);
             }
@@ -49,7 +49,7 @@ namespace ZeroLimits.XITools
             this.HeightThreshold = 5;
             this.TargetMobs = new List<string>();
             this.IgnoredMobs = new List<string>();
-            this.MobFilter = DefaultFilter(_fface);
+            this.UnitFilter = DefaultFilter(_fface);
         }
 
         #region Properties
@@ -75,10 +75,10 @@ namespace ZeroLimits.XITools
         public List<String> IgnoredMobs { get; set; }
 
         /// <summary>
-        /// Used to filter mobs based on what the consumer thinks is valid. 
+        /// Used to filter units based on what the user thinks is valid. 
         /// Sets an optional filter to be used. 
         /// </summary>
-        public Func<Unit, bool> MobFilter { get; set; }
+        public Func<Unit, bool> UnitFilter { get; set; }
 
         /// <summary>
         /// Does there exist a mob that has aggroed in general.
@@ -87,7 +87,7 @@ namespace ZeroLimits.XITools
         {
             get
             {
-                foreach (var Monster in ValidMobs)
+                foreach (var Monster in FilteredArray)
                 {
                     if (Monster.HasAggroed)
                     {
@@ -106,7 +106,7 @@ namespace ZeroLimits.XITools
         {
             get
             {
-                foreach (var Monster in ValidMobs)
+                foreach (var Monster in FilteredArray)
                 {
                     if (Monster.IsClaimed)
                     {
@@ -117,7 +117,10 @@ namespace ZeroLimits.XITools
             }
         }
 
-        public Unit[] ValidMobs
+        /// <summary>
+        /// Returns the list of filter units.
+        /// </summary>
+        public Unit[] FilteredArray
         {
             get
             {
@@ -127,6 +130,9 @@ namespace ZeroLimits.XITools
             }
         }
 
+        /// <summary>
+        /// Retrieves the list of UNITs
+        /// </summary>
         public Unit[] UnitArray
         {
             get
@@ -135,18 +141,76 @@ namespace ZeroLimits.XITools
             }
         }
 
+        /// <summary>
+        /// Retrieves the list of MOBs.
+        /// </summary>
+        public Unit[] MOBArray
+        {
+            get 
+            {
+                return UnitArray
+                    .Where(x => x.NPCType.Equals(NPCType.Mob))
+                    .ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the lsit of PCs.
+        /// </summary>
+        public Unit[] PCArray
+        {
+            get 
+            {
+                return UnitArray
+                    .Where(x => x.NPCType.Equals(NPCType.PC))
+                    .ToArray();
+            }
+        }
+
         #endregion
 
         public bool IsValid(Unit unit)
         {
-            return MobFilter(unit);
+            return UnitFilter(unit);
+        }
+
+        /// <summary>
+        /// Returns matched units that meet the filters requirements. 
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public Unit[] GetUnits(Func<Unit, bool> filter)
+        {
+            return UnitArray.Where(filter).ToArray();
+        }
+
+        /// <summary>
+        /// Returns matched units that meet the filters requirements 
+        /// and then orders by the passed function.
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="orderby"></param>
+        /// <returns></returns>
+        public Unit[] GetUnits(Func<Unit, bool> filter, Func<Unit, object> orderby)
+        {
+            return UnitArray.Where(filter).OrderBy(orderby).ToArray();
         }
 
         public Unit GetTarget(Func<Unit, bool> filter)
         {
-            return UnitArray.Where(filter).OrderBy(x => x.Distance)
-                .FirstOrDefault();
+            return GetUnits(filter).FirstOrDefault();
+        }
 
+        /// <summary>
+        /// Matches mobs against the "filter" and then orders them "orderby" 
+        /// and returns the first match.
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="orderby"></param>
+        /// <returns></returns>
+        public Unit GetTarget(Func<Unit, bool> filter, Func<Unit, object> orderby)
+        {
+            return GetUnits(filter).OrderBy(orderby).FirstOrDefault();
         }
 
         // The default mob filter used in filtering the mobs. 

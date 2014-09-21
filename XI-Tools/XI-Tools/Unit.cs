@@ -157,7 +157,8 @@ namespace ZeroLimits.XITools
 
         public bool MyClaim
         {
-            get { return ClaimedID == Session.Player.PlayerServerID; }
+            // Using FFACE.PartyMember[0].ServerID until FFACE.Player.PlayerServerID is fixed. 
+            get { return ClaimedID == Session.PartyMember[0].ServerID; }
         }
 
         public bool HasAggroed
