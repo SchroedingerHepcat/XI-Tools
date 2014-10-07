@@ -1,7 +1,7 @@
 
 /*///////////////////////////////////////////////////////////////////
 <EasyFarm, general farming utility for FFXI.>
-Copyright (C) <2013 - 2014>  <Zerolimits>
+Copyright (C) <2013>  <Zerolimits>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,30 +14,37 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-*////////////////////////////////////////////////////////////////////
+*/
+///////////////////////////////////////////////////////////////////
 
 ﻿using FFACETools;
 using System;
+using System.Collections.Generic;
+using System.Timers;
+using System.Linq;
 
 namespace ZeroLimits.XITools
 {
     public class Unit
     {
         #region Members
-        public static FFACE Session;
-        static FFACE.NPCTools NPCTools;
-        static Unit m = null;
+        public static FFACE Session { get; set; }
+        private static FFACE.NPCTools NPCTools;
+        private static Unit m = null;
+
         #endregion
 
         #region Constructors
         Unit(int id = 0)
         {
+            // Set the internal id. 
+            this.ID = id;
+
+            // Our npctools object. 
             if (NPCTools == null && Session != null)
             {
                 NPCTools = Session.NPC;
             }
-
-            ID = id;
         }
 
         public static Unit CreateUnit(int id)

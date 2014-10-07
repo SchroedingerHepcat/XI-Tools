@@ -1,7 +1,7 @@
 
 /*///////////////////////////////////////////////////////////////////
 <EasyFarm, general farming utility for FFXI.>
-Copyright (C) <2013 - 2014>  <Zerolimits>
+Copyright (C) <2013>  <Zerolimits>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -39,22 +39,23 @@ namespace ZeroLimits.XITools
         /// the target unit. 
         /// </summary>
         /// <param name="unit"></param>
-        public void MoveToUnit(Unit unit, double meleeDistance, int duration)
+        public void MoveToUnit(Unit unit, double distance)
         {
-            // Save the old tolerance
-            var OldTolerance = _fface.Navigator.DistanceTolerance;
-
-            // Use the new one
-            _fface.Navigator.DistanceTolerance = meleeDistance;
-
-            // Run to the unit while we are out of distance. 
-            if (_fface.Navigator.DistanceTo(unit.Position) >= meleeDistance)
+            // If the target is out of range move into range.
+            if (_fface.Navigator.DistanceTo(unit.Position) > distance)
             {
-                _fface.Navigator.GotoNPC(unit.ID, duration);
-            }
+                // Save old tolerance
+                var old = _fface.Navigator.DistanceTolerance;
 
-            // Restore the old tolerance.
-            _fface.Navigator.DistanceTolerance = OldTolerance;
+                // Set to max engagement distance.
+                _fface.Navigator.DistanceTolerance = distance;
+
+                // Goto target at max engagement distance.
+                _fface.Navigator.Goto(unit.Position, false);
+
+                // Restore old tolerance. 
+                _fface.Navigator.DistanceTolerance = old;
+            }
         }
 
         /// <summary>
