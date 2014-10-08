@@ -84,5 +84,15 @@ namespace ZeroLimits.XITools
         /// Maximum range for ranged attack.
         /// </summary>
         public const int RANGED_ATTACK_MAX_DISTANCE = 25;
+
+        /// <summary>
+        /// The upper limit of the spawn array. (Monsters, NPCs, Players)
+        /// </summary>
+        public const int UNIT_ARRAY_MAX = 2048;
+
+        /// <summary>
+        /// The upper limit of the mob array. (Monsters, NPCS)
+        /// </summary>
+        public const int MOB_ARRAY_MAX = 768;
     }
 }
